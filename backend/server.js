@@ -1,10 +1,12 @@
-const express = require("express");
 const dotenv = require("dotenv");
-const app = express();
-const passport = require("passport");
-const session = require("express-session");
-const authRoute = require("./routes/authRoute");
 const mongoose = require("mongoose");
+
+process.on("uncaughtException", (err) => {
+  console.log("UNCAUGHT EXCEPTION! 💥 Shutting down...");
+  console.log(err.name, err.message);
+  process.exit(1);
+});
+
 dotenv.config({});
 
 const DB = `${process.env.MONGODB_URL}`;
@@ -12,26 +14,18 @@ mongoose
   .connect(DB, {
     useNewUrlParser: true,
   })
-  .then(() => console.log("DB connection successful!"))
-  .catch((err) => {
-    console.log(process.env.MONGODB_URL);
-    console.log(`Error connecting to MongoDB : ${err}`);
-  });
+  .then(() => console.log("DB connection successful!"));
 
-require("./config/passport");
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    resave: false,
-    saveUninitialized: true,
-  })
-);
-
-app.use(passport.initialize());
-app.use(passport.session());
-app.use("/api/v1/auth", authRoute);
+const app = require("./app");
 
 const server = app.listen(process.env.PORT, () => {
   console.log(`app running on port ${process.env.PORT}`);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.log("UNHANDLED REJECTION! 💥 Shutting down...");
+  console.log(err.name, err.message);
+  server.close(() => {
+    process.exit(1);
+  });
 });
